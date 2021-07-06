@@ -1,0 +1,4 @@
+export enum SocketEvent {
+  GET_ALL_MESSAGES = 'GET_ALL_MESSAGES',
+  ACTIVE_USERS = 'ACTIVE_USERS',
+}

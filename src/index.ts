@@ -18,13 +18,12 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-import routes from './routes';
-routes(app);
-
-// import the realtime communication service
-
 const PORT = process.env.PORT || 5000;
-http
+const server = http
   .createServer(app)
   .listen(PORT)
   .once('listening', () => console.log(`Sever running on PORT ${PORT}`));
+
+// handle all socket operations
+import io from './lib/io';
+io(server);
