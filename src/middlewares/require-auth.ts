@@ -1,3 +1,5 @@
+import { AUTH0_AUDIENCE } from '../config';
+
 const jwt = require('express-jwt');
 const jwks = require('jwks-rsa');
 
@@ -8,7 +10,7 @@ export const requireAuth = jwt({
     jwksRequestsPerMinute: 5,
     jwksUri: 'https://dev-appoh.us.auth0.com/.well-known/jwks.json',
   }),
-  audience: 'http://hola/api',
+  audience: AUTH0_AUDIENCE,
   issuer: 'https://dev-appoh.us.auth0.com/',
   algorithms: ['RS256'],
 });
