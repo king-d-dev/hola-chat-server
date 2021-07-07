@@ -59,6 +59,10 @@ export default function (server: HttpServer) {
         const savedMessage = await Message.build(message).save();
 
         socket.to(message.recipient).emit(SocketEvent.MESSAGE, savedMessage);
+
+        // also sync the message accross the senders devices.
+        socket.broadcast.to(message.sender).emit(SocketEvent.MESSAGE, savedMessage);
+
         acknowlementFunc({ delivered: true });
       }
     );
