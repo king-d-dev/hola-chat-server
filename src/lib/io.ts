@@ -24,8 +24,11 @@ export default function (server: HttpServer) {
   io.use(adaptSocketToExpressMiddleWares(requireAuth));
   io.use(adaptSocketToExpressMiddleWares(getAuthenticatedUserDetails));
 
+  // broadcast to all others that a new user has joined
   io.on('connection', function (socket) {
-    console.log('new user connected -- ', socket.request.user.email);
+    const currentUser = socket.request.user;
+    console.log('new user connected -- ', currentUser.email);
+    socket.broadcast.emit(SocketEvent.NEW_USER_CONNECTED, currentUser);
   });
 
   // Automatically join users to a room of their own email so all their connected devices are synced
@@ -43,11 +46,9 @@ export default function (server: HttpServer) {
       SocketEvent.MESSAGE,
       async function (message: MessageDocument, acknowlementFunc: Function) {
         const savedMessage = await Message.build(message).save();
-        console.log('AAAA', savedMessage);
 
         socket.to(message.recipient).emit(SocketEvent.MESSAGE, savedMessage);
         acknowlementFunc({ delivered: true });
-        //   socket.emit(SocketEvent.MESSAGE, savedMessage);
       }
     );
   });
@@ -62,11 +63,7 @@ export default function (server: HttpServer) {
         $or: [{ sender: { $in: msgParticipants } }, { recipient: { $in: [selectedUser.email] } }],
       });
 
-      console.log('MESSAGES', messages);
-      console.log('CCCCC', socket.rooms);
-      console.log('CURRENT USER', currentUser.email);
-
-      //   socket.emit(SocketEvent.SELECTED_USER_MESSAGES, messages);
+      console.log('ROOMS', socket.rooms);
       io.in(currentUser.email).emit(SocketEvent.SELECTED_USER_MESSAGES, messages);
     });
   });
@@ -84,8 +81,5 @@ export default function (server: HttpServer) {
     }
 
     socket.emit(SocketEvent.ACTIVE_USERS, users);
-
-    // and then broadcast to all others that a new user has joined
-    socket.broadcast.emit(SocketEvent.NEW_USER_CONNECTED, currentUser);
   });
 }
