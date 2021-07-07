@@ -4,6 +4,7 @@ import { ExtendedError } from 'socket.io/dist/namespace';
 import { WEB_URL } from '../config';
 import { getAuthenticatedUserDetails } from '../middlewares/get-authenticated-user-info';
 import { requireAuth } from '../middlewares/require-auth';
+import { Message, MessageDocument } from '../models';
 import { SocketEvent, User } from '../types';
 
 type SocketNextFunc = (err?: ExtendedError | undefined) => void;
@@ -24,10 +25,7 @@ export default function (server: HttpServer) {
   io.use(adaptSocketToExpressMiddleWares(getAuthenticatedUserDetails));
 
   io.on('connection', function (socket) {
-    console.log('new user connected');
-
-    // Get all messages for the currently selected user
-    socket.on(SocketEvent.GET_SELECTED_USER_MESSAGES, function () {});
+    console.log('new user connected -- ', socket.request.user.email);
   });
 
   // Automatically join users to a room of their own email so all their connected devices are synced
@@ -35,7 +33,42 @@ export default function (server: HttpServer) {
   // if at least one of a users devices is still online, do not broadcast their disconnection
   io.on('connection', function (socket) {
     const { email } = socket.request.user;
+    console.log('Joining room ', email);
     socket.join(email);
+  });
+
+  // handle sending and receiving messages
+  io.on('connection', function (socket) {
+    socket.on(
+      SocketEvent.MESSAGE,
+      async function (message: MessageDocument, acknowlementFunc: Function) {
+        const savedMessage = await Message.build(message).save();
+        console.log('AAAA', savedMessage);
+
+        socket.to(message.recipient).emit(SocketEvent.MESSAGE, savedMessage);
+        acknowlementFunc({ delivered: true });
+        //   socket.emit(SocketEvent.MESSAGE, savedMessage);
+      }
+    );
+  });
+
+  // Get all messages for the currently selected user
+  io.on('connection', function (socket) {
+    socket.on(SocketEvent.SELECTED_USER_MESSAGES, async function (selectedUser: User) {
+      const currentUser = socket.request.user;
+      const msgParticipants = [currentUser.email, selectedUser.email];
+
+      const messages = await Message.find({
+        $or: [{ sender: { $in: msgParticipants } }, { recipient: { $in: [selectedUser.email] } }],
+      });
+
+      console.log('MESSAGES', messages);
+      console.log('CCCCC', socket.rooms);
+      console.log('CURRENT USER', currentUser.email);
+
+      //   socket.emit(SocketEvent.SELECTED_USER_MESSAGES, messages);
+      io.in(currentUser.email).emit(SocketEvent.SELECTED_USER_MESSAGES, messages);
+    });
   });
 
   // Get all connected users
@@ -51,5 +84,8 @@ export default function (server: HttpServer) {
     }
 
     socket.emit(SocketEvent.ACTIVE_USERS, users);
+
+    // and then broadcast to all others that a new user has joined
+    socket.broadcast.emit(SocketEvent.NEW_USER_CONNECTED, currentUser);
   });
 }

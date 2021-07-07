@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
-import { User } from './user';
 
 interface MessageAttr {
+  clientId: string /** this is an id generated in the browser to track a few changes such as message delivered status */;
   text: string;
-  sender: mongoose.ObjectId;
-  recipient: mongoose.ObjectId;
+  sender: string;
+  recipient: string;
   sentAt: Date;
   deliveredAt?: Date;
 }
@@ -17,9 +17,10 @@ interface MessageModel extends mongoose.Model<MessageDocument> {
 
 const MessageSchema = new mongoose.Schema<MessageDocument, MessageModel>(
   {
+    clientId: { type: String, required: true },
     text: { type: String, required: true },
-    sender: { type: String, required: true, ref: User },
-    recipient: { type: String, required: true, ref: User },
+    sender: { type: String, required: true },
+    recipient: { type: String, required: true },
     sentAt: { type: Date, required: true },
     deliveredAt: { type: Date, required: false },
   },
