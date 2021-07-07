@@ -31,9 +31,20 @@ export default function (server: HttpServer) {
     socket.broadcast.emit(SocketEvent.NEW_USER_CONNECTED, currentUser);
   });
 
-  // Automatically join users to a room of their own email so all their connected devices are synced
-  // and broadcast a users disconnection when all their devices are disconnected/offline
+  // handle users disconnection when all their devices are disconnected/offline
   // if at least one of a users devices is still online, do not broadcast their disconnection
+  io.on('connection', function (socket) {
+    socket.on('disconnect', async function () {
+      const currentUser = socket.request.user;
+      console.log('disconnecting ', currentUser.email);
+
+      const matchingSockets = await io.in(currentUser.email).allSockets();
+      const isDisconnected = matchingSockets.size === 0;
+      if (isDisconnected) socket.broadcast.emit(SocketEvent.USER_DISCONNECTED, currentUser);
+    });
+  });
+
+  // Automatically join users to a room of their own email so all their connected devices are synced
   io.on('connection', function (socket) {
     const { email } = socket.request.user;
     console.log('Joining room ', email);
