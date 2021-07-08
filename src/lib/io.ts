@@ -55,9 +55,11 @@ export default function (server: HttpServer) {
     socket.on(
       SocketEvent.MESSAGE,
       async function (message: MessageDocument, acknowlementFunc: Function) {
-        const blockedByRecipient = await BlackList.findOne({ blacklister: message.recipient });
-        console.log('BLOCKED BY', blockedByRecipient);
-        if (blockedByRecipient) return;
+        const blockedByRecipientOrSender = await BlackList.findOne({
+          $or: [{ blacklister: message.recipient }, { blacklistee: message.sender }],
+        });
+        console.log('BLOCKED BY Recipient or Sender', blockedByRecipientOrSender);
+        if (blockedByRecipientOrSender) return;
 
         const savedMessage = await Message.build(message).save();
 
