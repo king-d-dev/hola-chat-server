@@ -56,7 +56,7 @@ export default function (server: HttpServer) {
       SocketEvent.MESSAGE,
       async function (message: MessageDocument, acknowlementFunc: Function) {
         const blockedByRecipientOrSender = await BlackList.findOne({
-          $or: [{ blacklister: message.recipient }, { blacklistee: message.sender }],
+          $or: [{ blacklister: message.recipient }, { blacklister: message.sender }],
         });
         console.log('BLOCKED BY Recipient or Sender', blockedByRecipientOrSender);
         if (blockedByRecipientOrSender) return;
