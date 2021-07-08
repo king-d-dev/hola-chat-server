@@ -144,15 +144,17 @@ export default function (server: HttpServer) {
     });
   });
 
-  // Get a users blocked list
+  // Get a users blocked list (those blocked by this user)
   io.on('connection', function (socket) {
     socket.on(SocketEvent.BLACK_LIST, async function () {
       const currentUser = socket.request.user;
 
-      const currentUserBlackList = await BlackList.find(
-        { blacklister: currentUser.email },
-        { blacklistee: true }
-      );
+      const currentUserBlackList = (
+        await BlackList.find({ blacklister: currentUser.email }, { blacklistee: true })
+      ).map((each) => each.blacklistee);
+
+      console.log('USER BLACKLIST ', currentUserBlackList);
+
       io.in(currentUser.email).emit(SocketEvent.BLACK_LIST, currentUserBlackList);
     });
   });
