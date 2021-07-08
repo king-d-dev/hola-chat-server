@@ -111,8 +111,8 @@ export default function (server: HttpServer) {
     socket.on(SocketEvent.BLOCK_USER, async function (userToBeBlocked, acknowlementFunc) {
       const currentUser = socket.request.user;
       const existing = await BlackList.findOne({
-        blacklistee: currentUser.email,
-        blacklister: userToBeBlocked.email,
+        blacklistee: userToBeBlocked.email,
+        blacklister: currentUser.email,
       });
       if (existing) return;
 
